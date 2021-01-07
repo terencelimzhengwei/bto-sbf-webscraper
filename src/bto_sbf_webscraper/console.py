@@ -51,16 +51,14 @@ def main(selection_type, launch_date, town, flat_type):
             flat_type = get_flat_types(launch_date, flats_available)
             town = get_town(launch_date, flat_type, flats_available)
             data = scrape(selection_type, launch_date, flat_type, town)
-            file_name = (
-                f"{selection_type}_{launch_date}_{flat_type} Room_{town}.csv".replace(
-                    "/", "-"
-                )
+            file_name = f"{selection_type}_{launch_date}_{flat_type if flat_type else 'All'} Room_{town if town else 'All'}.csv".replace(
+                "/", "-"
             )
             pd.DataFrame(data).to_csv(file_name, index=None)
             print(f"Successfully saved to {file_name}")
     else:
         data = scrape(selection_type, launch_date, flat_type, town)
-        file_name = f"{selection_type}_{launch_date}_{flat_type} Room_{town}.csv".replace(
+        file_name = f"{selection_type}_{launch_date}_{flat_type if flat_type else 'All'} Room_{town if town else 'All'}.csv".replace(
             "/", "-"
         )
         pd.DataFrame(data).to_csv(file_name, index=None)

@@ -3,6 +3,7 @@ from copy import deepcopy
 from time import sleep
 from urllib.parse import unquote
 
+import click
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -78,43 +79,50 @@ def scrape_link(driver, flat_link):
             pass
     final_data = []
     index = 0
-    length = len(links)
+    # length = len(links)
     town = unquote(re.compile("Town=(.+?)&").findall(flat_link)[0])
     flat = unquote(re.compile("Flat=(.+?)&").findall(flat_link)[0])
-    for link in links:
-        index = index + 1
-        driver.execute_script(link)
-        sleep(10)
-        html_doc = driver.execute_script("return document.documentElement.innerHTML")
-        doc = BeautifulSoup(html_doc, features="html.parser")
-        prices = [a for a in doc.find_all("span", class_="tooltip") if "$" in a.text]
-        if len(prices) > 0:
-            block_details = doc.find("div", {"id": "blockDetails"}).find_all(
-                "div", {"class": "columns"}
+    with click.progressbar(
+        links, label=f"Processing blocks for {town} - {flat} Room", show_pos=True
+    ) as linkss:
+        for link in linkss:
+            index = index + 1
+            driver.execute_script(link)
+            sleep(10)
+            html_doc = driver.execute_script(
+                "return document.documentElement.innerHTML"
             )
-            temp_list = []
-            for x in block_details:
-                text = x.text.strip().replace("\xa0", " ")
-                temp_list.append(text)
-                if "Malay-" in text:
-                    break
-            initial_dict = {}
-            initial_dict["Town"] = town
-            initial_dict["Flat Type"] = flat
-            it = iter(temp_list)
-            initial_dict = {**initial_dict, **dict(zip(it, it))}
+            doc = BeautifulSoup(html_doc, features="html.parser")
+            prices = [
+                a for a in doc.find_all("span", class_="tooltip") if "$" in a.text
+            ]
+            if len(prices) > 0:
+                block_details = doc.find("div", {"id": "blockDetails"}).find_all(
+                    "div", {"class": "columns"}
+                )
+                temp_list = []
+                for x in block_details:
+                    text = x.text.strip().replace("\xa0", " ")
+                    temp_list.append(text)
+                    if "Malay-" in text:
+                        break
+                initial_dict = {}
+                initial_dict["Town"] = town
+                initial_dict["Flat Type"] = flat
+                it = iter(temp_list)
+                initial_dict = {**initial_dict, **dict(zip(it, it))}
 
-        for price in prices:
-            temp_data = price.get("title").split("____________________")
-            initial_dict["Price"] = temp_data[0].replace("<br>", "\n").strip()
-            initial_dict["Size"] = (
-                temp_data[1].strip().replace("\xa0", " ").replace("<br>", "")
-            )
-            initial_dict["Unit"] = price.get("data-selector")
-            print(
-                f"{town} - {flat} - {initial_dict['Block']} - {initial_dict['Unit']}: {index} / {length}"
-            )
-            final_data.append(deepcopy(initial_dict))
+            for price in prices:
+                temp_data = price.get("title").split("____________________")
+                initial_dict["Price"] = temp_data[0].replace("<br>", "\n").strip()
+                initial_dict["Size"] = (
+                    temp_data[1].strip().replace("\xa0", " ").replace("<br>", "")
+                )
+                initial_dict["Unit"] = price.get("data-selector")
+                # print(
+                #     f"{town} - {flat} - {initial_dict['Block']} - {initial_dict['Unit']}: {index} / {length}"
+                # )
+                final_data.append(deepcopy(initial_dict))
 
     return final_data
 
@@ -146,12 +154,12 @@ def scrape_links(links):
     # driver = webdriver.Chrome(ChromeDriverManager().install())
     data = []
     index = 0
-    length = len(links)
+    # length = len(links)
     for link in links:
         index = index + 1
-        town = unquote(re.compile("Town=(.+?)&").findall(link)[0])
-        flat = unquote(re.compile("Flat=(.+?)&").findall(link)[0])
-        print(f"{town} - {flat} : {index} / {length}")
+        # town = unquote(re.compile("Town=(.+?)&").findall(link)[0])
+        # flat = unquote(re.compile("Flat=(.+?)&").findall(link)[0])
+        # print(f"{town} - {flat} : {index} / {length}")
         flat_data = scrape_link(driver, link)
         data = data + flat_data
     driver.close()
