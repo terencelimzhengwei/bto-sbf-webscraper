@@ -14,6 +14,7 @@ def get_available_flats(selection_type="OBF"):
     chrome_options = Options()
     chrome_options.add_argument("--headless")
     driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
+    # driver = webdriver.Chrome(ChromeDriverManager().install())
     driver.get(url)
     html = BeautifulSoup(
         driver.execute_script("return document.documentElement.innerHTML"),
@@ -43,8 +44,10 @@ def get_available_flats(selection_type="OBF"):
                     continue
                 flat_dict["flat_type"] = columns[0].text
                 flat_link = columns[0].find("a").get("href")
-                p = re.compile('(\\/.+=.)\\"')
+                p = re.compile('(\\/.+=.?)\\"')
+                print(flat_link)
                 flat_path = p.findall(flat_link)[0]
+                print(flat_path)
                 flat_dict["flat_link"] = "https://services2.hdb.gov.sg" + flat_path
                 flat_dict["units_available"] = columns[1].text
                 flat_dict["malay_quota"] = columns[2].text
