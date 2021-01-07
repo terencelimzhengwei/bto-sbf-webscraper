@@ -2,23 +2,27 @@
 This is a simple CLI tool to help you retrieve BTO / SBF / OBF flat details during a launch.
 <img src="screenshot.gif" width="80%" height="auto">
 
-## Installation details
-1. Install poetry if you do not have it installed
+## Installation
+>Before you start installation ensure that you have Python ^3.7.6 installed
+
+Install poetry if you do not have it installed
 ```bash
 curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
 ```
-2. Clone repository
+Then clone the repository
 ```bash
 git clone git@github.com:terencelimzhengwei/bto-sbf-webscraper.git
 cd bto-sbf-webscraper
 ```
-3. Install dependencies
+Install dependencies
 ```bash
 poetry install
 ```
 ## Usage
-To go through step by step process leverage the -s parameter and provide `SBF` for sales of balance flats, `OBF` for open booking of flats and `BTO` for built to order flats
+To go through step by step process leverage the `-s or --selection_type` parameter and provide `SBF` for sales of balance flats, `OBF` for open booking of flats and `BTO` for built to order flats
 ```bash
+# By default the selection type will be BTO
+poetry run scrape-now
 # for Build-to-order Flats
 poetry run scrape-now -s BTO
 # for Sales of Balance Flats
