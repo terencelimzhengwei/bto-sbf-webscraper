@@ -37,7 +37,7 @@ os.environ["WDM_LOG_LEVEL"] = str(logging.WARNING)
 @click.option(
     "--flat_type",
     "-f",
-    help="Choose your flat type (2-Room, 3-Room, 4-Room, 5-Room)",
+    help="Choose your flat type (2, 3, 4, 5, All)",
     show_default=True,
 )
 @click.version_option(version=__version__)
@@ -83,7 +83,7 @@ def get_flat_types(launch_date, flats_available):
     for town in launch["towns"]:
         for ft in town["flat_types"]:
             flat_types.append(ft["flat_type"][0])
-    flat_types = sorted(list(set(flat_types)))
+    flat_types = sorted(list(set(flat_types))) + ["All"]
     flat_type = click.prompt(
         f"How many rooms are you looking at " f"({', '.join(flat_types)})?", type=str
     )
@@ -94,6 +94,7 @@ def get_flat_types(launch_date, flats_available):
             f"({', '.join(flat_types)})?",
             type=str,
         )
+    flat_type = None if flat_type.lower() == "all" else flat_type
     return flat_type
 
 
@@ -102,7 +103,7 @@ def get_town(launch_date, flat_type, flats_available):
     towns = []
     for town in launch["towns"]:
         for ft in town["flat_types"]:
-            if f"{flat_type}-Room" in ft["flat_type"]:
+            if (f"{flat_type}-Room" in ft["flat_type"]) or (not flat_type):
                 towns.append(town["town"])
                 break
     towns = sorted(list(set(towns))) + ["All"]
@@ -116,9 +117,7 @@ def get_town(launch_date, flat_type, flats_available):
             f"({', '.join(towns)})?",
             type=str,
         )
-
-    if town.lower() == "all":
-        town = None
+    town = None if town.lower() == "all" else flat_type
     return town
 
 

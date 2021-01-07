@@ -12,8 +12,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 def get_available_flats(selection_type="OBF"):
     url = f"https://services2.hdb.gov.sg/webapp/BP13AWFlatAvail/BP13SEstateSummary?sel={selection_type}"
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
+    chrome_options = set_chrome_options()
     driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
     # driver = webdriver.Chrome(ChromeDriverManager().install())
     driver.get(url)
@@ -151,8 +150,7 @@ def get_links_to_scrape(selection_type, launch_date, flat_type=None, town=None):
 
 
 def scrape_links(links):
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
+    chrome_options = set_chrome_options()
     driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
     # driver = webdriver.Chrome(ChromeDriverManager().install())
     data = []
@@ -180,3 +178,17 @@ def scrape(selection_type, launch_date, flat_type=None, town=None):
     links = get_links_to_scrape(selection_type, launch_date, flat_type, town)
     data = scrape_links(links)
     return data
+
+
+def set_chrome_options():
+    """Sets chrome options for Selenium.
+    Chrome options for headless browser is enabled.
+    """
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_prefs = {}
+    chrome_options.experimental_options["prefs"] = chrome_prefs
+    chrome_prefs["profile.default_content_settings"] = {"images": 2}
+    return chrome_options
