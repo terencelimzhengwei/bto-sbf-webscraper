@@ -45,9 +45,7 @@ def get_available_flats(selection_type="OBF"):
                 flat_dict["flat_type"] = columns[0].text
                 flat_link = columns[0].find("a").get("href")
                 p = re.compile('(\\/.+=.?)\\"')
-                print(flat_link)
                 flat_path = p.findall(flat_link)[0]
-                print(flat_path)
                 flat_dict["flat_link"] = "https://services2.hdb.gov.sg" + flat_path
                 flat_dict["units_available"] = columns[1].text
                 flat_dict["malay_quota"] = columns[2].text
