@@ -84,7 +84,7 @@ def scrape_link(driver, flat_link):
     flat = unquote(re.compile("Flat=(.+?)&").findall(flat_link)[0])
     with click.progressbar(
         links,
-        label=f"Processing blocks for {town} - {flat} Room",
+        label=f"{town} - {flat} Room",
         show_pos=True,
         show_eta=False,
     ) as linkss:
@@ -158,6 +158,7 @@ def scrape_links(links):
     data = []
     index = 0
     # length = len(links)
+    click.secho("Processing Blocks", fg="green")
     for link in links:
         index = index + 1
         # town = unquote(re.compile("Town=(.+?)&").findall(link)[0])
