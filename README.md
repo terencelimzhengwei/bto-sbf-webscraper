@@ -1,6 +1,6 @@
 # Simple CLI to scrape for BTO / SBF / OBF flats
 This is a simple CLI tool to help you retrieve BTO / SBF / OBF flat details during a launch.
-<img src="screenshot.gif" width="100%" height="auto" max-width="100">
+<img src="screenshot.gif" width="80%" height="auto">
 
 ## Installation details
 1. Install poetry if you do not have it installed
