@@ -167,11 +167,11 @@ def scrape_links(links):
 
 
 def scrape(selection_type, launch_date, flat_type=None, town=None):
-    print("Starting to scrape for...")
-    print(
+    click.secho("\nStarting to scrape for...", fg="yellow")
+    click.secho(
         f"Type : {selection_type}, Launch Date : {launch_date}, "
         f"Flat Type : {flat_type if flat_type else 'All'} Room, "
-        f"Town : {town if town else 'All'}"
+        f"Town : {town if town else 'All'}",
     )
     links = get_links_to_scrape(selection_type, launch_date, flat_type, town)
     data = scrape_links(links)
