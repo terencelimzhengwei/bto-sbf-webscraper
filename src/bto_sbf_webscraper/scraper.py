@@ -1,5 +1,4 @@
 import re
-from copy import deepcopy
 from time import sleep
 from urllib.parse import unquote
 
@@ -58,73 +57,112 @@ def get_available_flats(selection_type="OBF"):
     return flats_dict
 
 
-def scrape_link(driver, flat_link):
-    p = re.compile("Town=(.+?)&")
-    town = unquote(p.findall(flat_link)[0])
+def get_list_by_id(driver, id):
+    try:
+        flat_list = [
+            a.get_attribute("value")
+            for a in driver.find_element_by_id(id).find_elements_by_tag_name("option")
+        ]
+        return flat_list
+    except Exception:
+        return []
+
+
+def get_block_links(driver, flat_link):
     success = False
     while not success:
         try:
             driver.get(flat_link)
-            html = BeautifulSoup(
-                driver.execute_script("return document.documentElement.innerHTML"),
-                features="html.parser",
-            )
             links = [
-                a.find("div").get("onclick") for a in html.find("table").find_all("td")
+                a.find_element_by_tag_name("div").get_attribute("onclick")
+                for a in driver.find_element_by_tag_name(
+                    "table"
+                ).find_elements_by_tag_name("td")
             ]
             success = True
+            return links
         except Exception:
             sleep(5)
             pass
+
+
+def get_value_by_id(driver, id):
+    try:
+        return driver.find_element_by_id(id).get_attribute("value")
+    except Exception:
+        return None
+
+
+def get_block_details(driver):
+    block_details = driver.find_elements_by_xpath(
+        "//div[contains(@id, 'blockDetails')]"
+        "/div[contains(@class, 'row')]"
+        "/div[contains(@class, 'columns')]"
+    )
+    data = []
+    for block in block_details:
+        text = block.text.strip().replace("\xa0", " ")
+        data.append(text)
+        if "Malay-" in text:
+            break
+    it = iter(data)
+    return dict(zip(it, it))
+
+
+def process_block(driver, link):
+    success = False
+    while not success:
+        try:
+            initial_dict = {}
+            driver.execute_script(link)
+            sleep(5)
+            initial_dict["Town"] = get_value_by_id(driver, "Town")
+            initial_dict["Flat"] = get_value_by_id(driver, "Flat")
+            unit_details = get_unit_details(driver)
+
+            if unit_details:
+                block_details = get_block_details(driver)
+                final_data = [
+                    {**initial_dict, **block_details, **x} for x in unit_details
+                ]
+                success = True
+                return final_data
+        except Exception:
+            sleep(5)
+            pass
+
+
+def get_unit_details(driver):
+    unit_details = [
+        a
+        for a in driver.find_elements_by_xpath("//span[contains(@class, 'tooltip')]")
+        if "$" in a.get_attribute("title")
+    ]
+    data = []
+    for unit in unit_details:
+        unit_dict = {}
+        unit_dict["Unit"] = unit.get_attribute("data-selector")
+        title = unit.get_attribute("title").replace("\xa0", " ")
+        unit_dict["Price"] = re.compile("(\\$.+?)<").findall(title)[0]
+        unit_dict["Size"] = re.compile(">(\\d.+Sqm)").findall(title)[0]
+        data.append(unit_dict)
+    return data
+
+
+def scrape_link(driver, flat_link):
+    block_links = get_block_links(driver, flat_link)
     final_data = []
-    index = 0
-    # length = len(links)
     town = unquote(re.compile("Town=(.+?)&").findall(flat_link)[0])
     flat = unquote(re.compile("Flat=(.+?)&").findall(flat_link)[0])
     with click.progressbar(
-        links,
+        block_links,
         label=f"{town} - {flat} Room",
         show_pos=True,
         show_eta=False,
     ) as linkss:
         for link in linkss:
-            index = index + 1
-            driver.execute_script(link)
-            sleep(10)
-            html_doc = driver.execute_script(
-                "return document.documentElement.innerHTML"
-            )
-            doc = BeautifulSoup(html_doc, features="html.parser")
-            prices = [
-                a for a in doc.find_all("span", class_="tooltip") if "$" in a.text
-            ]
-            if len(prices) > 0:
-                block_details = doc.find("div", {"id": "blockDetails"}).find_all(
-                    "div", {"class": "columns"}
-                )
-                temp_list = []
-                for x in block_details:
-                    text = x.text.strip().replace("\xa0", " ")
-                    temp_list.append(text)
-                    if "Malay-" in text:
-                        break
-                initial_dict = {}
-                initial_dict["Town"] = town
-                initial_dict["Flat Type"] = flat
-                it = iter(temp_list)
-                initial_dict = {**initial_dict, **dict(zip(it, it))}
-
-            for price in prices:
-                temp_data = price.get("title").split("____________________")
-                initial_dict["Price"] = temp_data[0].replace("<br>", "\n").strip()
-                initial_dict["Size"] = (
-                    temp_data[1].strip().replace("\xa0", " ").replace("<br>", "")
-                )
-                initial_dict["Unit"] = price.get("data-selector")
-                # print(
-                #     f"{town} - {flat} - {initial_dict['Block']} - {initial_dict['Unit']}: {index} / {length}"
-                # )
-                final_data.append(deepcopy(initial_dict))
+            data = process_block(driver, link)
+            final_data.append(data)
 
     return final_data
 
@@ -154,14 +192,8 @@ def scrape_links(links):
     driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
     # driver = webdriver.Chrome(ChromeDriverManager().install())
     data = []
-    index = 0
-    # length = len(links)
     click.secho("Processing Blocks", fg="green")
     for link in links:
-        index = index + 1
-        # town = unquote(re.compile("Town=(.+?)&").findall(link)[0])
-        # flat = unquote(re.compile("Flat=(.+?)&").findall(link)[0])
-        # print(f"{town} - {flat} : {index} / {length}")
         flat_data = scrape_link(driver, link)
         data = data + flat_data
     driver.close()
@@ -185,10 +217,10 @@ def set_chrome_options():
     Chrome options for headless browser is enabled.
     """
     chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_prefs = {}
-    chrome_options.experimental_options["prefs"] = chrome_prefs
-    chrome_prefs["profile.default_content_settings"] = {"images": 2}
+    # chrome_options.add_argument("--headless")
+    # chrome_options.add_argument("--no-sandbox")
+    # chrome_options.add_argument("--disable-dev-shm-usage")
+    # chrome_prefs = {}
+    # chrome_options.experimental_options["prefs"] = chrome_prefs
+    # chrome_prefs["profile.default_content_settings"] = {"images": 2}
     return chrome_options
