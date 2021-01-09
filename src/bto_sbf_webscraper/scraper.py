@@ -58,6 +58,15 @@ def get_available_flats(selection_type="OBF"):
 
 
 def get_list_by_id(driver, id):
+    """Get list of values for Towns or Flats
+
+    Args:
+        driver (webdriver): Selenium Webdriver
+        id (str): 'Town' or 'Flat'
+
+    Returns:
+        list (str): Returns list of values that can be selected
+    """
     try:
         flat_list = [
             a.get_attribute("value")
@@ -69,6 +78,15 @@ def get_list_by_id(driver, id):
 
 
 def get_block_links(driver, flat_link):
+    """Get block links that needs to be scraped
+
+    Args:
+        driver (webdriver): Selenium Webdriver
+        flat_link (str): url of the flat link that needs to be scraped to get the block links
+
+    Returns:
+        list (str): List of javascript snippets that needs to be executed
+    """
     success = False
     while not success:
         try:
@@ -87,6 +105,15 @@ def get_block_links(driver, flat_link):
 
 
 def get_value_by_id(driver, id):
+    """Returns the value of the object in the html doc
+
+    Args:
+        driver (webdriver): Selenium Webdriver
+        id (str): HTML id that you want to retrieve
+
+    Returns:
+        str: Value of the HTML element that contains the ID
+    """
     try:
         return driver.find_element_by_id(id).get_attribute("value")
     except Exception:
@@ -94,6 +121,14 @@ def get_value_by_id(driver, id):
 
 
 def get_block_details(driver):
+    """Get block details (Block, Street, Ethnic Quota, Delivery Date etc.)
+
+    Args:
+        driver (webdriver): Selenium Webdriver
+
+    Returns:
+        dict: Dictionary containing the details of the block
+    """
     block_details = driver.find_elements_by_xpath(
         "//div[contains(@id, 'blockDetails')]"
         "/div[contains(@class, 'row')]"
@@ -110,6 +145,15 @@ def get_block_details(driver):
 
 
 def process_block(driver, link):
+    """Return the block details and unit details of the block that needs to be scraped
+
+    Args:
+        driver (webdriver): Selenium Webdriver
+        link (str): Javascript code that needs to be executed to enter the page
+
+    Returns:
+        list (dict): Returns list of dictionaries containing details of the block and units
+    """
     success = False
     while not success:
         try:
@@ -133,6 +177,14 @@ def process_block(driver, link):
 
 
 def get_unit_details(driver):
+    """Get unit details such as price, unit number and size of the flat
+
+    Args:
+        driver (webdriver): Selenium webdriver
+
+    Returns:
+        dict : Returns dictionary containing unit details
+    """
     unit_details = [
         a
         for a in driver.find_elements_by_xpath("//span[contains(@class, 'tooltip')]")
@@ -150,6 +202,15 @@ def get_unit_details(driver):
 
 
 def scrape_link(driver, flat_link):
+    """Scrapes the given HDB flat link
+
+    Args:
+        driver (webdriver): Selenium Webdriver
+        flat_link (str): URL of the flat link that needs to be scraped
+
+    Returns:
+        list (dict): Returns list of dictionaries containing all the blocks and units in the flat link
+    """
     block_links = get_block_links(driver, flat_link)
     final_data = []
     town = unquote(re.compile("Town=(.+?)&").findall(flat_link)[0])
@@ -162,12 +223,23 @@ def scrape_link(driver, flat_link):
     ) as linkss:
         for link in linkss:
             data = process_block(driver, link)
-            final_data.append(data)
+            final_data = final_data + data
 
     return final_data
 
 
 def get_links_to_scrape(selection_type, launch_date, flat_type=None, town=None):
+    """Retrieves the list of links that needs to be scraped from the HDB site
+
+    Args:
+        selection_type (str): SBF / OBF / BTO
+        launch_date (str): Date of ballot / Sales Launch
+        flat_type (str, optional): Number of rooms of flat. Defaults to None.
+        town (str, optional): Town of flat. Defaults to None.
+
+    Returns:
+        list (str): Returns a list of urls that needs to be scraped
+    """
     flats_available = get_available_flats(selection_type)
     links = []
     if flats_available:
@@ -188,6 +260,14 @@ def get_links_to_scrape(selection_type, launch_date, flat_type=None, town=None):
 
 
 def scrape_links(links):
+    """Scrape all the links provided
+
+    Args:
+        links (str): Links that needs to be scraped from HDB site
+
+    Returns:
+        list (dict): List of dictionaries containing all the data for the HDB
+    """
     chrome_options = set_chrome_options()
     driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
     # driver = webdriver.Chrome(ChromeDriverManager().install())
@@ -201,6 +281,17 @@ def scrape_links(links):
 
 
 def scrape(selection_type, launch_date, flat_type=None, town=None):
+    """Retrieves all the links to scrape and scrapes them
+
+    Args:
+        selection_type (str): SBF / OBF / BTO
+        launch_date (str): Date of ballot / Sales Launch
+        flat_type (str, optional): Number of rooms of flat. Defaults to None.
+        town (str, optional): Town of flat. Defaults to None.
+
+    Returns:
+        list (dict): Returns list of dictionaries containing all the blocks and units for all links
+    """
     click.secho("\nStarting to scrape for...", fg="yellow")
     click.secho(
         f"Type : {selection_type}, Launch Date : {launch_date}, "
@@ -217,10 +308,10 @@ def set_chrome_options():
     Chrome options for headless browser is enabled.
     """
     chrome_options = Options()
-    # chrome_options.add_argument("--headless")
-    # chrome_options.add_argument("--no-sandbox")
-    # chrome_options.add_argument("--disable-dev-shm-usage")
-    # chrome_prefs = {}
-    # chrome_options.experimental_options["prefs"] = chrome_prefs
-    # chrome_prefs["profile.default_content_settings"] = {"images": 2}
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_prefs = {}
+    chrome_options.experimental_options["prefs"] = chrome_prefs
+    chrome_prefs["profile.default_content_settings"] = {"images": 2}
     return chrome_options
